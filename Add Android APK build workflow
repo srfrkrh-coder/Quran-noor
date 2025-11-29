@@ -1,0 +1,64 @@
+name: Build Noor Quran APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:    # می‌تونی دستی هم اجراش کنی
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: دریافت کد
+        uses: actions/checkout@v4
+
+      - name: نصب Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: نصب وابستگی‌ها
+        run: npm ci
+
+      - name: نصب Capacitor
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: ساخت پروژه وب (dist)
+        run: npm run build
+
+      - name: تنظیم Capacitor
+        run: |
+          npx cap init "نور قرآن و ذکر" com.noor.quran --web-dir=dist
+
+      - name: افزودن پلتفرم اندروید
+        run: |
+          npx cap add android
+
+      - name: همگام‌سازی وب با اندروید
+        run: |
+          npx cap copy android
+          npx cap sync android
+
+      - name: نصب Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: ساخت APK (Debug - قابل نصب روی همه گوشی‌ها)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --warning-mode all
+
+      - name: آپلود APK نهایی
+        uses: actions/upload-artifact@v4
+        with:
+          name: نور-قرآن-و-ذکر.apk
+          # اسم فارسی توی دانلود
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
