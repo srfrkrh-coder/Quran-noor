@@ -1,0 +1,34 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "نور" com.yourname.noorapp
+          npx cap add android
+          npx cap sync
+          cd android
+          ./gradlew assembleDebug
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
